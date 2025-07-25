@@ -7,10 +7,16 @@ import os
 import random
 import pyautogui
 import pyjokes
+import requests
+import pyperclip
+from dotenv import load_dotenv
+
+load_dotenv()
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
 engine = pyttsx3.init()
-voices = engine.getProperty('voices')
-engine.setProperty('voice', voices[1].id)  
+vocies = engine.getProperty('voices')
+engine.setProperty('voice', voices[1].id)
 engine.setProperty('rate', 150)
 engine.setProperty('volume', 1)
 
@@ -145,6 +151,28 @@ def search_wikipedia(query):
     except Exception:
         speak("I couldn't find anything on Wikipedia.")
 
+def get_gemini_response(prompt: str) -> str:
+    if not GEMINI_API_KEY:
+        return "Gemini API key is not configured. Please set the GEMINI_API_KEY environment variable."
+
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.0-pro-vision-latest:generateContent?key={GEMINI_API_KEY}"
+    headers = {"Content-Type": "application/json"}
+    data = {
+        "contents": [
+            {
+                "parts": [
+                    {"text": prompt}
+                ]
+            }
+        ]
+    }
+
+    try:
+        response = requests.post(url, headers=headers, json=data)
+        response.raise_for_status()  # Raise an exception for bad status codes
+        return response.json()["candidates"][0]["content"]["parts"][0]["text"]
+    except requests.exceptions.RequestException as e:
+        return f"An error occurred: {e}"
 
 if __name__ == "__main__":
     wishme()
@@ -185,6 +213,14 @@ if __name__ == "__main__":
             joke = pyjokes.get_joke()
             speak(joke)
             print(joke)
+            
+        elif "analyze this" in query or "help me with this" in query:
+            clipboard_content = pyperclip.paste()
+            if clipboard_content:
+                response = get_gemini_response(f"Analyze this code: {clipboard_content}")
+                speak(response)
+            else:
+                speak("The clipboard is empty. Please copy something to the clipboard first.")
 
         elif "shutdown" in query:
             speak("Shutting down the system, goodbye!")
