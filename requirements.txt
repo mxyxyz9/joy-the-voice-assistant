@@ -6,3 +6,4 @@ pyjokes==0.6.0
 python-dotenv==1.0.1
 requests==2.31.0
 pyperclip==1.8.2
+customtkinter==5.2.2
